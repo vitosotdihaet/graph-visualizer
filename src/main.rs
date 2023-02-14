@@ -18,6 +18,7 @@ fn main() {
         .add_system(close_on_esc)
         .add_startup_system(startup)
         .add_state(State::Graph)
+        .add_system_set(SystemSet::on_enter(State::Graph).with_system(init))
         .add_system_set(SystemSet::on_update(State::Graph).with_system(app))
         .run();
 }
