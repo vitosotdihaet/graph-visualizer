@@ -4,7 +4,7 @@ fn main() {
     let windows_info: WindowDescriptor = WindowDescriptor {
         width: 1000.0,
         height: 1000.0,
-        title: "Discrete math graph visualizer".to_owned(),
+        title: "Graph visualizer".to_owned(),
         resizable: true,
         ..Default::default()
     };
