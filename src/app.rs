@@ -7,7 +7,9 @@ pub use bevy::{
     },
 };
 
+use bevy::sprite::MaterialMesh2dBundle;
 use std::{
+    iter::zip,
     path::Path,
 };
 
@@ -28,6 +30,10 @@ pub struct Resources {
 pub struct StartingText;
 
 
+#[derive(Component)]
+pub struct BgVertex;
+
+
 const FONT_NAME: &'static str = "FOTNewRodin Pro B.otf";
 
 const FONT_SIZE: f32 = 60.0;
@@ -35,8 +41,10 @@ const INIT_TEXT_FONT_SIZE: f32 = 40.0;
 
 const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
 const INIT_TEXT_COLOR: Color = Color::rgb(0.4, 0.4, 0.4);
-const COLOR_NODE: Color = Color::rgb(0.7, 0.7, 0.7);
-const COLOR_HOVERED_NODE: Color = Color::rgb(0.8, 0.8, 0.8);
+
+const COLOR_FG_NODE: Color = Color::rgb(0.5, 0.5, 0.5);
+const COLOR_BG_NODE: Color = Color::rgb(0.2, 0.2, 0.2);
+const COLOR_HOVERED_NODE: Color = Color::rgb(0.65, 0.65, 0.65);
 const COLOR_PRESSED_NODE: Color = Color::rgb(0.3, 0.3, 0.3);
 
 pub fn startup(
@@ -78,10 +86,13 @@ pub fn app(
     mut c: Commands,
     mut g: ResMut<Graph>,
     mut state: ResMut<State<GraphState>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
     mut cursor_moved: EventReader<CursorMoved>,
     mut cursor_position: Local<Vec2>,
     mut text_query: Query<Entity, With<StartingText>>,
-    mut vertex_query: Query<&mut Transform, With<Vertex>>,
+    mut vertex_bg_query: Query<&mut Transform, (With<Vertex>, With<BgVertex>)>,
+    mut vertex_fg_query: Query<&mut Transform, (With<Vertex>, Without<BgVertex>)>,
     mut vertex_interaction_query: Query<&Interaction, (Changed<Interaction>, With<Vertex>)>,
 ) {
     if let Some(moved_cursor) = cursor_moved.iter().last() {
@@ -94,9 +105,34 @@ pub fn app(
     // create new vertex
     if right_click {
         for e in &mut text_query { c.entity(e).despawn(); }
-        println!("Wow!");
+
         let new_id = (*g).len();
-        (*g).add_vertex(Vertex { id: new_id, ..Default::default() });
+        let vertex = Vertex { id: new_id, ..Default::default() };
+
+        (*g).add_vertex(vertex.clone());
+
+        c.spawn(MaterialMesh2dBundle {
+            mesh: meshes.add(shape::Circle::new(50.).into()).into(),
+            material: materials.add(ColorMaterial::from(COLOR_BG_NODE)),
+            ..default()
+        })
+        .insert(vertex.clone())
+        .insert(BgVertex);
+
+        c.spawn(MaterialMesh2dBundle {
+            mesh: meshes.add(shape::Circle::new(40.).into()).into(),
+            material: materials.add(ColorMaterial::from(COLOR_FG_NODE)),
+            ..default()
+        })
+        .insert(vertex);
+    }
+
+    for (i, (mut fgt, mut bgt)) in zip(&mut vertex_fg_query, &mut vertex_bg_query).into_iter().enumerate() {
+        let x = 100. * (i as f32);
+        let y = 0.;
+        *fgt = Transform { translation: Vec3 { x, y, z: 1. }, ..Default::default() };
+        *bgt = Transform { translation: Vec3 { x, y, z: 0. }, ..Default::default() };
+        println!("{}: {:?}\n{:?}\n", i, *fgt, *bgt);
     }
 
     // println!("{}!", (*g).len());
