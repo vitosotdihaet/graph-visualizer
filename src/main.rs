@@ -1,3 +1,4 @@
+use graphs::graph::Graph;
 use graphs::app::*;
 
 fn main() {
@@ -10,6 +11,7 @@ fn main() {
     };
 
     App::new()
+        .init_resource::<Graph>()
         .insert_resource(ClearColor(Color::rgb(0.1, 0.1, 0.1)))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: windows_info,
@@ -17,8 +19,8 @@ fn main() {
         }))
         .add_system(close_on_esc)
         .add_startup_system(startup)
-        .add_state(State::Graph)
-        .add_system_set(SystemSet::on_enter(State::Graph).with_system(init))
-        .add_system_set(SystemSet::on_update(State::Graph).with_system(app))
+        .add_state(GraphState::Graph)
+        .add_system_set(SystemSet::on_enter(GraphState::Graph).with_system(init))
+        .add_system_set(SystemSet::on_update(GraphState::Graph).with_system(app))
         .run();
 }
