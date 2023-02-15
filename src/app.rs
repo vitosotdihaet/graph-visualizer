@@ -23,9 +23,6 @@ pub struct Resources {
 }
 
 
-#[derive(Component)]
-pub struct NodeComponent;
-
 const FONT_NAME: &'static str = "FOTNewRodin Pro B.otf";
 
 const FONT_SIZE: f32 = 60.0;
