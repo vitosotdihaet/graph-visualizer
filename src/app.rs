@@ -91,10 +91,9 @@ pub fn app(
     let left_click = mouse_button_input.just_released(MouseButton::Left);
     let right_click = mouse_button_input.just_released(MouseButton::Right);
 
+    // create new vertex
     if right_click {
-        for e in &mut text_query {
-            c.entity(e).despawn();
-        }
+        for e in &mut text_query { c.entity(e).despawn(); }
         println!("Wow!");
         let new_id = (*g).len();
         (*g).add_vertex(Vertex { id: new_id, ..Default::default() });

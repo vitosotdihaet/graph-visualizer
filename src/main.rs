@@ -1,5 +1,5 @@
-use graphs::graph::Graph;
-use graphs::app::*;
+use graph_visualizer::graph::Graph;
+use graph_visualizer::app::*;
 
 fn main() {
     let windows_info: WindowDescriptor = WindowDescriptor {
