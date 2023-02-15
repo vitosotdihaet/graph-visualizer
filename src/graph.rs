@@ -8,10 +8,16 @@ use std::{
     collections::HashMap,
 };
 
-#[derive(Component, Clone, Default, PartialEq, Eq, Debug)]
+#[derive(Component, Clone, Default, Eq, Debug)]
 pub struct Vertex {
     pub id: usize,
     pub connected: Vec<Vertex>,
+}
+
+impl PartialEq for Vertex {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 impl Hash for Vertex {
@@ -37,6 +43,10 @@ impl Graph {
     }
 
     pub fn len(&self) -> usize {
-        return self.vertecies.len()
+        self.vertecies.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.vertecies.len() == 0
     }
 }

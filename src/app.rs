@@ -34,7 +34,7 @@ pub struct StartingText;
 pub struct BgVertex;
 
 
-const FONT_NAME: &'static str = "FOTNewRodin Pro B.otf";
+const FONT_NAME: &str = "FOTNewRodin Pro B.otf";
 
 const FONT_SIZE: f32 = 60.0;
 const INIT_TEXT_FONT_SIZE: f32 = 40.0;
