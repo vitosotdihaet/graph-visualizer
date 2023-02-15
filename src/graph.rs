@@ -20,6 +20,7 @@ impl Hash for Vertex {
     }
 }
 
+
 #[derive(Resource, Default, Clone)]
 pub struct Graph {
     pub vertecies: HashMap<Vertex, Vec<Vertex>>,
