@@ -82,6 +82,7 @@ pub fn init(
 
 pub fn app(
     r: Res<Resources>,
+    windows: Res<Windows>,
     mouse_button_input: Res<Input<MouseButton>>,
     mut c: Commands,
     mut g: ResMut<Graph>,
@@ -102,18 +103,24 @@ pub fn app(
     let left_click = mouse_button_input.just_released(MouseButton::Left);
     let right_click = mouse_button_input.just_released(MouseButton::Right);
 
+    let window = windows.get_primary().unwrap();
+    let (w, h) = ((*window).width(), (*window).height());
+
     // create new vertex
     if right_click {
         for e in &mut text_query { c.entity(e).despawn(); }
 
+        println!("cursor_pos: {}", *cursor_position);
         let new_id = (*g).len();
-        let vertex = Vertex { id: new_id, ..Default::default() };
+        let (cx, cy) = ((*cursor_position).x - w/2., (*cursor_position).y - h/2.);
+        let vertex = Vertex { id: new_id, coords: Vec2::new(cx, cy), ..Default::default() };
 
         (*g).add_vertex(vertex.clone());
 
         c.spawn(MaterialMesh2dBundle {
             mesh: meshes.add(shape::Circle::new(50.).into()).into(),
             material: materials.add(ColorMaterial::from(COLOR_BG_NODE)),
+            transform: Transform::from_translation(Vec3::new(cx, cy, 0.)),
             ..default()
         })
         .insert(vertex.clone())
@@ -122,21 +129,27 @@ pub fn app(
         c.spawn(MaterialMesh2dBundle {
             mesh: meshes.add(shape::Circle::new(40.).into()).into(),
             material: materials.add(ColorMaterial::from(COLOR_FG_NODE)),
+            transform: Transform::from_translation(Vec3::new(cx, cy, 1.)),
             ..default()
         })
         .insert(vertex);
     }
 
-    for (i, (mut fgt, mut bgt)) in zip(&mut vertex_fg_query, &mut vertex_bg_query).into_iter().enumerate() {
-        let x = 100. * (i as f32);
-        let y = 0.;
-        *fgt = Transform { translation: Vec3 { x, y, z: 1. }, ..Default::default() };
-        *bgt = Transform { translation: Vec3 { x, y, z: 0. }, ..Default::default() };
-        println!("{}: {:?}\n{:?}\n", i, *fgt, *bgt);
-    }
+    for (mut v1, (mut fgt1, mut bgt1)) in zip((*g).verticies.clone().iter_mut(), zip(&mut vertex_fg_query, &mut vertex_bg_query)) {
+        v1.coords = Vec2::new(fgt1.translation.x, fgt1.translation.y);
+        println!("{}, {:?}", v1.coords, fgt1);
+        for v2 in (*g).verticies.clone() {
+            if *v1 == v2 { continue; }
+            let f = v1.relate(&v2);
+            v1.add_acc(f);
+        }
+        v1.update();
 
-    // println!("{}!", (*g).len());
-    // for (i, _) in (*g).vertecies.clone() {
-    //     println!("{:?}", i);
-    // }
+        let (x, y) = (v1.coords.x, v1.coords.y); // bro i can't even unwrap Vec2 to tuple, literally 1984
+        println!("{:?}", v1);
+        *bgt1 = Transform { translation: Vec3 { x, y, z: 0. }, ..Default::default() };
+        *fgt1 = Transform { translation: Vec3 { x, y, z: 1. }, ..Default::default() };
+    }
+    println!();
+
 }
