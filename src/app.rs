@@ -110,7 +110,6 @@ pub fn app(
     if right_click {
         for e in &mut text_query { c.entity(e).despawn(); }
 
-        println!("cursor_pos: {}", *cursor_position);
         let new_id = (*g).len();
         let (cx, cy) = ((*cursor_position).x - w/2., (*cursor_position).y - h/2.);
         let vertex = Vertex { id: new_id, coords: Vec2::new(cx, cy), ..Default::default() };
@@ -135,21 +134,23 @@ pub fn app(
         .insert(vertex);
     }
 
+    for (mut v1, fgt1) in zip((*g).verticies.iter_mut(), &vertex_fg_query) {
+        v1.coords = Vec2::new(fgt1.translation.x, fgt1.translation.y);
+    }
+
     for (mut v1, (mut fgt1, mut bgt1)) in zip((*g).verticies.clone().iter_mut(), zip(&mut vertex_fg_query, &mut vertex_bg_query)) {
         v1.coords = Vec2::new(fgt1.translation.x, fgt1.translation.y);
-        println!("{}, {:?}", v1.coords, fgt1);
         for v2 in (*g).verticies.clone() {
             if *v1 == v2 { continue; }
             let f = v1.relate(&v2);
             v1.add_acc(f);
         }
+        // if v1.acceleration.length() < MINIMAL_F { v1.acceleration *= 0.; }
         v1.update();
 
         let (x, y) = (v1.coords.x, v1.coords.y); // bro i can't even unwrap Vec2 to tuple, literally 1984
-        println!("{:?}", v1);
         *bgt1 = Transform { translation: Vec3 { x, y, z: 0. }, ..Default::default() };
         *fgt1 = Transform { translation: Vec3 { x, y, z: 1. }, ..Default::default() };
     }
-    println!();
 
 }

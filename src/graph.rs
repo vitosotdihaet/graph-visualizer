@@ -8,12 +8,13 @@ use std::{
     collections::HashMap,
 };
 
+pub const MINIMAL_F: f32 = 3.;
 const MINIMAL_DISTANCE: f32 = 10.;
 const MAXIMUM_DISTANCE: f32 = 400.;
-const ACCEPTABLE_FLUCT: f32 = 200.;
-const DEL: f32 = 350.;
-const RELATION_POWER: f32 = 2000.;
-const SPRING_COEF: f32 = 0.5;
+const ACCEPTABLE_FLUCT: f32 = 100.;
+const DEL: f32 = 375.;
+const RELATION_POWER: f32 = 500000.;
+const SPRING_COEF: f32 = 0.01;
 
 #[derive(Component, Clone, Default, Debug)]
 pub struct Vertex {
@@ -30,25 +31,19 @@ impl Vertex {
         let c2 = other.coords;
         let nv = c1 - c2;
 
-        // println!("c1: {}, c2: {}", c1, c2);
-
         let mut f = Vec2::new(0., 0.);
         let mut d = nv.length();
-        println!("dist from {} to {}: {}; MAX IS {}, so {}", self.id, other.id, d, MAXIMUM_DISTANCE, d < MAXIMUM_DISTANCE);
         if let Some(a) = nv.try_normalize() { f = a; }
 
         if d < MAXIMUM_DISTANCE {
-            println!("NOT MAXXXXXXXXXXXXXXXXXXXX {{");
             d = MINIMAL_DISTANCE.max(d);
 
             f *= RELATION_POWER/(d*d);
-            println!("\t f = {}\n}}", f);
         } else {
-            println!("KUDAAAAAAAAAAAAAAAAAAAAAAA {{");
             f *= SPRING_COEF*(DEL - d);
-            if (DEL - d).abs() < ACCEPTABLE_FLUCT { f *= 0.; }
-            println!("\t f = {}\n}}", f);
+            if (DEL - d).abs() < ACCEPTABLE_FLUCT { f *= 0.25; }
         }
+        if f.length() < MINIMAL_F { f *= 0.; }
         f
     }
 
@@ -58,10 +53,8 @@ impl Vertex {
 
     pub fn update(&mut self) {
         self.velocity += self.acceleration;
-        let wanted = self.coords + self.velocity;
 
-        self.coords = Vec2::new(self.coords.x + (wanted.x - self.coords.x) * 0.3, self.coords.y + (wanted.y - self.coords.y) * 0.3);
-        self.coords.lerp(self.coords + self.velocity, 0.3);
+        self.coords = self.coords.lerp(self.coords + self.velocity, 0.2);
 
         self.acceleration *= 0.;
     }
