@@ -104,20 +104,18 @@ pub fn app(
         *cursor_position = moved_cursor.position;    
     }
 
-    let left_click = mouse_button_input.just_released(MouseButton::Left);
-    let right_click = mouse_button_input.just_released(MouseButton::Right);
+    let left_click = mouse_button_input.just_pressed(MouseButton::Left);
 
-    if left_click {
-        *lmb_pushed = false;
-    }
-    if mouse_button_input.just_pressed(MouseButton::Left) {
-        *lmb_pushed = true;
-    }
+    let left_release = mouse_button_input.just_released(MouseButton::Left);
+    let right_release = mouse_button_input.just_released(MouseButton::Right);
+
+    if left_release { *lmb_pushed = false; }
+    if left_click { *lmb_pushed = true; }
 
     let (cx, cy) = ((*cursor_position).x - w/2., (*cursor_position).y - h/2.);
 
     // create new vertex
-    if right_click {
+    if right_release {
         for e in &mut text_query { c.entity(e).despawn(); }
 
         let new_id = (*g).len();
@@ -139,6 +137,25 @@ pub fn app(
                 ..default()
             });
         })
+        .with_children(|parent| {
+            parent.spawn(Text2dBundle {
+                text: Text {
+                    sections: vec![
+                        TextSection {
+                            value: format!("{}", new_id),
+                            style: TextStyle {
+                                font: r.font.clone(),
+                                font_size: FONT_SIZE,
+                                color: COLOR_TEXT,
+                            }    
+                        }
+                    ],
+                    alignment: TextAlignment::CENTER
+                },
+                transform: Transform::from_translation(Vec3::new(0., 0., 2.)),
+                ..Default::default()
+            });
+        })
         .insert(vertex);
     }
 
@@ -147,13 +164,12 @@ pub fn app(
     }
 
     *not_dragged = true;
-    // iterate over indecies of g.verticies
+    // iterate over all arcs to give force to each vertex
     for (i, mut t) in zip(0..(*g).len(), &mut vertex_query) {
         let mut v1 = (*g).verticies[i].clone();
-        v1.coords = Vec2::new(t.translation.x, t.translation.y);
 
         // drag a vertex
-        if *lmb_pushed && is_in_circle(*cursor_position - Vec2::new(w/2., h/2.), v1.coords, 2.*VERTEX_RADIUS) && *not_dragged {
+        if *lmb_pushed && *not_dragged && is_in_circle(*cursor_position - Vec2::new(w/2., h/2.), v1.coords, 1.5*VERTEX_RADIUS) {
             *not_dragged = false;
             (*t).translation = Vec3::new(cx, cy, 0.);
             continue;
