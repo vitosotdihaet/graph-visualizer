@@ -145,7 +145,6 @@ pub fn app(
             let f = v1.relate(&v2);
             v1.add_acc(f);
         }
-        // if v1.acceleration.length() < MINIMAL_F { v1.acceleration *= 0.; }
         v1.update();
 
         let (x, y) = (v1.coords.x, v1.coords.y); // bro i can't even unwrap Vec2 to tuple, literally 1984
