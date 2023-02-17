@@ -132,10 +132,6 @@ pub fn app(
         .insert(vertex);
     }
 
-    for mut v in &mut vertex_query {
-
-    }
-
     for (mut v, t) in zip((*g).verticies.iter_mut(), &mut vertex_query) {
         v.coords = Vec2::new(t.translation.x, t.translation.y);
     }
