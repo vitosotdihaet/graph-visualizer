@@ -30,29 +30,30 @@ pub struct Resources {
 pub struct StartingText;
 
 
-#[derive(Component)]
-pub struct BgVertex;
-
-
 const FONT_NAME: &str = "FOTNewRodin Pro B.otf";
 
-const FONT_SIZE: f32 = 60.0;
-const INIT_TEXT_FONT_SIZE: f32 = 40.0;
+const VERTEX_RADIUS: f32 = 50.;
 
-const TEXT_COLOR: Color = Color::rgb(0.9, 0.9, 0.9);
-const INIT_TEXT_COLOR: Color = Color::rgb(0.4, 0.4, 0.4);
+const FONT_SIZE: f32 = 60.;
+const FONT_INIT_TEXT_SIZE: f32 = 40.;
+
+const COLOR_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
+const COLOR_INIT_TEXT: Color = Color::rgb(0.4, 0.4, 0.4);
 
 const COLOR_FG_NODE: Color = Color::rgb(0.5, 0.5, 0.5);
 const COLOR_BG_NODE: Color = Color::rgb(0.2, 0.2, 0.2);
 const COLOR_HOVERED_NODE: Color = Color::rgb(0.65, 0.65, 0.65);
 const COLOR_PRESSED_NODE: Color = Color::rgb(0.3, 0.3, 0.3);
 
+fn is_in_circle(p1: Vec2, p2: Vec2, r: f32) -> bool {
+    (p2.x - r < p1.x && p1.x < p2.x + r) && (p2.y - r < p1.y && p1.y < p2.y + r)
+}
+
 pub fn startup(
     a: Res<AssetServer>,
     mut c: Commands,
 ) {
     c.spawn(Camera2dBundle::default());
-
     c.insert_resource(Resources { font: a.load(Path::new("fonts").join(FONT_NAME)) });
 }
 
@@ -66,8 +67,8 @@ pub fn init(
                 value: "To create a new vertex press RMB".to_owned(),
                 style: TextStyle {
                     font: r.font.clone(),
-                    font_size: INIT_TEXT_FONT_SIZE,
-                    color: INIT_TEXT_COLOR,
+                    font_size: FONT_INIT_TEXT_SIZE,
+                    color: COLOR_INIT_TEXT,
                 },
             }],
             alignment: TextAlignment {
@@ -91,10 +92,15 @@ pub fn app(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut cursor_moved: EventReader<CursorMoved>,
     mut cursor_position: Local<Vec2>,
+    mut lmb_pushed: Local<bool>,
+    mut not_dragged: Local<bool>,
     mut text_query: Query<Entity, With<StartingText>>,
     mut vertex_query: Query<&mut Transform, (With<Vertex>, With<Children>)>,
     mut vertex_interaction_query: Query<&Interaction, Changed<Interaction>>,
 ) {
+    let window = windows.get_primary().unwrap();
+    let (w, h) = ((*window).width(), (*window).height());
+    
     if let Some(moved_cursor) = cursor_moved.iter().last() {
         *cursor_position = moved_cursor.position;    
     }
@@ -102,28 +108,33 @@ pub fn app(
     let left_click = mouse_button_input.just_released(MouseButton::Left);
     let right_click = mouse_button_input.just_released(MouseButton::Right);
 
-    let window = windows.get_primary().unwrap();
-    let (w, h) = ((*window).width(), (*window).height());
+    if left_click {
+        *lmb_pushed = false;
+    }
+    if mouse_button_input.just_pressed(MouseButton::Left) {
+        *lmb_pushed = true;
+    }
+
+    let (cx, cy) = ((*cursor_position).x - w/2., (*cursor_position).y - h/2.);
 
     // create new vertex
     if right_click {
         for e in &mut text_query { c.entity(e).despawn(); }
 
         let new_id = (*g).len();
-        let (cx, cy) = ((*cursor_position).x - w/2., (*cursor_position).y - h/2.);
         let vertex = Vertex { id: new_id, coords: Vec2::new(cx, cy), ..Default::default() };
 
         (*g).add_vertex(vertex.clone());
 
         c.spawn(MaterialMesh2dBundle { // bg circle
-            mesh: meshes.add(shape::Circle::new(50.).into()).into(),
+            mesh: meshes.add(shape::Circle::new(VERTEX_RADIUS).into()).into(),
             material: materials.add(ColorMaterial::from(COLOR_BG_NODE)),
             transform: Transform::from_translation(Vec3::new(cx, cy, 0.)),
             ..default()
         })
         .with_children(|parent| {
             parent.spawn(MaterialMesh2dBundle { // fg circle
-                mesh: meshes.add(shape::Circle::new(40.).into()).into(),
+                mesh: meshes.add(shape::Circle::new(VERTEX_RADIUS * 0.8).into()).into(),
                 material: materials.add(ColorMaterial::from(COLOR_FG_NODE)),
                 transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
                 ..default()
@@ -132,15 +143,24 @@ pub fn app(
         .insert(vertex);
     }
 
-    for (mut v, t) in zip((*g).verticies.iter_mut(), &mut vertex_query) {
-        v.coords = Vec2::new(t.translation.x, t.translation.y);
+    for (i, t) in zip(0..(*g).len(), &mut vertex_query) {
+        (*g).verticies[i].coords = Vec2::new(t.translation.x, t.translation.y);
     }
 
-    for (mut v1, mut t) in zip((*g).verticies.clone().iter_mut(),&mut vertex_query) {
+    *not_dragged = true;
+    for (i, mut t) in zip(0..(*g).len(), &mut vertex_query) {
+        let mut v1 = (*g).verticies[i].clone();
         v1.coords = Vec2::new(t.translation.x, t.translation.y);
 
-        for v2 in (*g).verticies.clone() {
-            if *v1 == v2 { continue; }
+        if *lmb_pushed && is_in_circle(*cursor_position - Vec2::new(w/2., h/2.), v1.coords, 2.*VERTEX_RADIUS) && *not_dragged {
+            *not_dragged = false;
+            (*t).translation = Vec3::new(cx, cy, 0.);
+            continue;
+        }
+
+        for j in 0..(*g).len() {
+            if i == j { continue; }
+            let v2 = &mut (*g).verticies[j];
             let f = v1.relate(&v2);
             v1.add_acc(f);
         }
