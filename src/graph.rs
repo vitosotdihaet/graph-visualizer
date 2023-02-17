@@ -8,15 +8,17 @@ use std::{
     collections::HashMap,
 };
 
-const MINIMAL_F: f32 = 3.;
+const MINIMAL_F:        f32 = 1.;
 const MINIMAL_DISTANCE: f32 = 10.;
 const MAXIMUM_DISTANCE: f32 = 400.;
+const AIMING_DISTANCE:  f32 = 375.;
 const ACCEPTABLE_FLUCT: f32 = 100.;
-const DEL: f32 = 375.;
-const RELATION_POWER: f32 = 500000.;
-const SPRING_COEF: f32 = 0.01;
+const FLUCT_POWER:      f32 = 0.25;
+const RELATION_POWER:   f32 = 500000.;
+const SPRING_COEF:      f32 = 0.01;
+const DEFAULT_MOVEMENT: f32 = 1.;
 
-#[derive(Component, Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, Component)]
 pub struct Vertex {
     pub id: usize,
     pub connected: Vec<Vertex>,
@@ -40,8 +42,8 @@ impl Vertex {
 
             f *= RELATION_POWER/(d*d);
         } else {
-            f *= SPRING_COEF*(DEL - d);
-            if (DEL - d).abs() < ACCEPTABLE_FLUCT { f *= 0.25; }
+            f *= SPRING_COEF * (AIMING_DISTANCE - d) + DEFAULT_MOVEMENT;
+            if (AIMING_DISTANCE - d).abs() < ACCEPTABLE_FLUCT { f *= FLUCT_POWER; }
         }
         if f.length() < MINIMAL_F { f *= 0.; }
         f
