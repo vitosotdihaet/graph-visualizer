@@ -8,7 +8,7 @@ use std::{
     collections::HashMap,
 };
 
-pub const MINIMAL_F: f32 = 3.;
+const MINIMAL_F: f32 = 3.;
 const MINIMAL_DISTANCE: f32 = 10.;
 const MAXIMUM_DISTANCE: f32 = 400.;
 const ACCEPTABLE_FLUCT: f32 = 100.;
