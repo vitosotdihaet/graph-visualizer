@@ -40,10 +40,10 @@ const FONT_INIT_TEXT_SIZE: f32 = 40.;
 const COLOR_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 const COLOR_INIT_TEXT: Color = Color::rgb(0.4, 0.4, 0.4);
 
-const COLOR_FG_NODE: Color = Color::rgb(0.5, 0.5, 0.5);
-const COLOR_BG_NODE: Color = Color::rgb(0.2, 0.2, 0.2);
-const COLOR_HOVERED_NODE: Color = Color::rgb(0.65, 0.65, 0.65);
-const COLOR_PRESSED_NODE: Color = Color::rgb(0.3, 0.3, 0.3);
+const COLOR_FG_VERTEX: Color = Color::rgb(0.5, 0.5, 0.5);
+const COLOR_BG_VERTEX: Color = Color::rgb(0.2, 0.2, 0.2);
+const COLOR_HOVERED_VERTEX: Color = Color::rgb(0.65, 0.65, 0.65);
+const COLOR_PRESSED_VERTEX: Color = Color::rgb(0.3, 0.3, 0.3);
 
 fn is_in_circle(p1: Vec2, p2: Vec2, r: f32) -> bool {
     (p2.x - r < p1.x && p1.x < p2.x + r) && (p2.y - r < p1.y && p1.y < p2.y + r)
@@ -96,7 +96,6 @@ pub fn app(
     mut not_dragged: Local<bool>,
     mut text_query: Query<Entity, With<StartingText>>,
     mut vertex_query: Query<&mut Transform, (With<Vertex>, With<Children>)>,
-    mut vertex_interaction_query: Query<&Interaction, Changed<Interaction>>,
 ) {
     let window = windows.get_primary().unwrap();
     let (w, h) = ((*window).width(), (*window).height());
@@ -128,14 +127,14 @@ pub fn app(
 
         c.spawn(MaterialMesh2dBundle { // bg circle
             mesh: meshes.add(shape::Circle::new(VERTEX_RADIUS).into()).into(),
-            material: materials.add(ColorMaterial::from(COLOR_BG_NODE)),
+            material: materials.add(ColorMaterial::from(COLOR_BG_VERTEX)),
             transform: Transform::from_translation(Vec3::new(cx, cy, 0.)),
             ..default()
         })
         .with_children(|parent| {
             parent.spawn(MaterialMesh2dBundle { // fg circle
                 mesh: meshes.add(shape::Circle::new(VERTEX_RADIUS * 0.8).into()).into(),
-                material: materials.add(ColorMaterial::from(COLOR_FG_NODE)),
+                material: materials.add(ColorMaterial::from(COLOR_FG_VERTEX)),
                 transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
                 ..default()
             });
@@ -148,10 +147,12 @@ pub fn app(
     }
 
     *not_dragged = true;
+    // iterate over indecies of g.verticies
     for (i, mut t) in zip(0..(*g).len(), &mut vertex_query) {
         let mut v1 = (*g).verticies[i].clone();
         v1.coords = Vec2::new(t.translation.x, t.translation.y);
 
+        // drag a vertex
         if *lmb_pushed && is_in_circle(*cursor_position - Vec2::new(w/2., h/2.), v1.coords, 2.*VERTEX_RADIUS) && *not_dragged {
             *not_dragged = false;
             (*t).translation = Vec3::new(cx, cy, 0.);
