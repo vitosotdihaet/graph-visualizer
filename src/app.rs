@@ -92,9 +92,8 @@ pub fn app(
     mut cursor_moved: EventReader<CursorMoved>,
     mut cursor_position: Local<Vec2>,
     mut text_query: Query<Entity, With<StartingText>>,
-    mut vertex_bg_query: Query<&mut Transform, (With<Vertex>, With<BgVertex>)>,
-    mut vertex_fg_query: Query<&mut Transform, (With<Vertex>, Without<BgVertex>)>,
-    mut vertex_interaction_query: Query<&Interaction, (Changed<Interaction>, With<Vertex>)>,
+    mut vertex_query: Query<&mut Transform, (With<Vertex>, With<Children>)>,
+    mut vertex_interaction_query: Query<&Interaction, Changed<Interaction>>,
 ) {
     if let Some(moved_cursor) = cursor_moved.iter().last() {
         *cursor_position = moved_cursor.position;    
@@ -116,30 +115,34 @@ pub fn app(
 
         (*g).add_vertex(vertex.clone());
 
-        c.spawn(MaterialMesh2dBundle {
+        c.spawn(MaterialMesh2dBundle { // bg circle
             mesh: meshes.add(shape::Circle::new(50.).into()).into(),
             material: materials.add(ColorMaterial::from(COLOR_BG_NODE)),
             transform: Transform::from_translation(Vec3::new(cx, cy, 0.)),
             ..default()
         })
-        .insert(vertex.clone())
-        .insert(BgVertex);
-
-        c.spawn(MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(40.).into()).into(),
-            material: materials.add(ColorMaterial::from(COLOR_FG_NODE)),
-            transform: Transform::from_translation(Vec3::new(cx, cy, 1.)),
-            ..default()
+        .with_children(|parent| {
+            parent.spawn(MaterialMesh2dBundle { // fg circle
+                mesh: meshes.add(shape::Circle::new(40.).into()).into(),
+                material: materials.add(ColorMaterial::from(COLOR_FG_NODE)),
+                transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
+                ..default()
+            });
         })
         .insert(vertex);
     }
 
-    for (mut v1, fgt1) in zip((*g).verticies.iter_mut(), &vertex_fg_query) {
-        v1.coords = Vec2::new(fgt1.translation.x, fgt1.translation.y);
+    for mut v in &mut vertex_query {
+
     }
 
-    for (mut v1, (mut fgt1, mut bgt1)) in zip((*g).verticies.clone().iter_mut(), zip(&mut vertex_fg_query, &mut vertex_bg_query)) {
-        v1.coords = Vec2::new(fgt1.translation.x, fgt1.translation.y);
+    for (mut v, t) in zip((*g).verticies.iter_mut(), &mut vertex_query) {
+        v.coords = Vec2::new(t.translation.x, t.translation.y);
+    }
+
+    for (mut v1, mut t) in zip((*g).verticies.clone().iter_mut(),&mut vertex_query) {
+        v1.coords = Vec2::new(t.translation.x, t.translation.y);
+
         for v2 in (*g).verticies.clone() {
             if *v1 == v2 { continue; }
             let f = v1.relate(&v2);
@@ -148,8 +151,7 @@ pub fn app(
         v1.update();
 
         let (x, y) = (v1.coords.x, v1.coords.y); // bro i can't even unwrap Vec2 to tuple, literally 1984
-        *bgt1 = Transform { translation: Vec3 { x, y, z: 0. }, ..Default::default() };
-        *fgt1 = Transform { translation: Vec3 { x, y, z: 1. }, ..Default::default() };
+        (*t).translation = Vec3::new(x, y, 0.);
     }
 
 }
