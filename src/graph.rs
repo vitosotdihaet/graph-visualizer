@@ -85,23 +85,46 @@ impl Hash for Vertex {
 #[derive(Resource, Default, Clone)]
 pub struct Graph {
     pub verticies: Vec<Vertex>,
-    pub arcs: HashMap<Vertex, Vec<Vertex>>,
+    pub arcs: HashMap<usize, Vec<usize>>,
 }
 
 impl Graph {
     pub fn add_vertex(&mut self, v: Vertex) {
         self.verticies.push(v.clone());
 
-        if !self.arcs.contains_key(&v) {
-            self.arcs.insert(v.clone(), Vec::new());
+        for u in &v.connected {
+            self.arcs.get_mut(&v.id).unwrap().push(u.id);
         }
-        for u in &v.connected {   
-            self.arcs.get_mut(&v).unwrap().push(u.clone());
+    }
+
+    pub fn add_arc(&mut self, k: usize, v: usize) {
+        if !self.arcs.contains_key(&k) {
+            self.arcs.insert(k, vec![v]);
+        } else {
+            self.arcs.get_mut(&k).unwrap().push(v);
         }
+    }
+
+    pub fn all_arcs(&mut self) -> Vec<(usize, usize)> {
+        let mut v = Vec::new();
+        for i in self.arcs.keys() {
+            for j in self.arcs.get(i).unwrap() {
+                v.push((*i, *j));
+            }
+        }
+        v
     }
 
     pub fn len(&self) -> usize {
         self.verticies.len()
+    }
+
+    pub fn len_arcs(&self) -> usize {
+        let mut sum = 0;
+        for i in self.arcs.values() {
+            sum += (*i).len();
+        }
+        sum
     }
 
     pub fn is_empty(&self) -> bool {
