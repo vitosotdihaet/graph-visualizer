@@ -27,7 +27,7 @@ pub struct Resources {
 }
 
 #[derive(Component)]
-pub struct StartingText;
+pub struct HintText;
 
 
 const FONT_NAME: &str = "FOTNewRodin Pro B.otf";
@@ -78,7 +78,7 @@ pub fn init(
         },
         ..Default::default()
     })
-    .insert(StartingText);
+    .insert(HintText);
 }
 
 pub fn app(
@@ -92,9 +92,8 @@ pub fn app(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut cursor_moved: EventReader<CursorMoved>,
     mut cursor_position: Local<Vec2>,
-    mut lmb_pushed: Local<bool>,
-    mut not_dragged: Local<bool>,
-    mut text_query: Query<Entity, With<StartingText>>,
+    mut last_dragged_id: Local<usize>,
+    mut text_query: Query<Entity, With<HintText>>,
     mut vertex_query: Query<&mut Transform, (With<Vertex>, With<Children>)>,
 ) {
     let window = windows.get_primary().unwrap();
@@ -109,14 +108,11 @@ pub fn app(
     let left_release = mouse_button_input.just_released(MouseButton::Left);
     let right_release = mouse_button_input.just_released(MouseButton::Right);
 
-    if left_release { *lmb_pushed = false; }
-    if left_click { *lmb_pushed = true; }
-
     let (cx, cy) = ((*cursor_position).x - w/2., (*cursor_position).y - h/2.);
 
     // create new vertex
     if right_release {
-        for e in &mut text_query { c.entity(e).despawn(); }
+        for e in &mut text_query { c.entity(e).despawn(); *last_dragged_id = usize::MAX; } // despawn hint text
 
         let new_id = (*g).len();
         let vertex = Vertex { id: new_id, coords: Vec2::new(cx, cy), ..Default::default() };
@@ -163,14 +159,16 @@ pub fn app(
         (*g).verticies[i].coords = Vec2::new(t.translation.x, t.translation.y);
     }
 
-    *not_dragged = true;
     // iterate over all arcs to give force to each vertex
     for (i, mut t) in zip(0..(*g).len(), &mut vertex_query) {
         let mut v1 = (*g).verticies[i].clone();
 
         // drag a vertex
-        if *lmb_pushed && *not_dragged && is_in_circle(*cursor_position - Vec2::new(w/2., h/2.), v1.coords, 1.5*VERTEX_RADIUS) {
-            *not_dragged = false;
+        if left_click && is_in_circle(*cursor_position - Vec2::new(w/2., h/2.), v1.coords, VERTEX_RADIUS) {
+            *last_dragged_id = i;
+        } else if left_release {
+            *last_dragged_id = usize::MAX;
+        } else if !left_click && *last_dragged_id == i {
             (*t).translation = Vec3::new(cx, cy, 0.);
             continue;
         }
