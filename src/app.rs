@@ -21,7 +21,7 @@ pub enum GraphState {
     Algorithm,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug, Resource)]
 pub enum MouseMode {
     Move,
     Build,
@@ -32,6 +32,21 @@ impl Default for MouseMode {
         MouseMode::Move
     }
 }
+
+#[derive(Clone, PartialEq, Eq, Debug, Resource)]
+pub struct LastTouchedId(pub usize);
+
+
+#[derive(Clone, PartialEq, Debug, Resource)]
+pub struct CursorPosition(pub Vec2);
+
+#[derive(Clone, PartialEq, Debug, Resource)]
+pub struct CursorPositionToCenter(pub Vec2);
+
+
+#[derive(Clone, PartialEq, Debug, Resource)]
+pub struct ApplyForce(pub bool);
+
 
 #[derive(Resource)]
 pub struct Resources {
@@ -61,6 +76,7 @@ const ARC_WIDTH: f32 = 10.;
 
 const KEYCODE_BUILD: KeyCode = KeyCode::B;
 const KEYCODE_MOVE: KeyCode = KeyCode::M;
+const KEYCODE_TOGGLE_FORCE: KeyCode = KeyCode::Space;
 
 fn is_in_circle(p1: Vec2, p2: Vec2, r: f32) -> bool {
     (p2.x - r < p1.x && p1.x < p2.x + r) && (p2.y - r < p1.y && p1.y < p2.y + r)
@@ -117,57 +133,60 @@ pub fn init(
     .insert(HintText);
 }
 
-pub fn app(
-    r: Res<Resources>,
-    windows: Res<Windows>,
-    mouse_button_input: Res<Input<MouseButton>>,
+pub fn handle_input(
     keys: Res<Input<KeyCode>>,
-    mut c: Commands,
-    mut g: ResMut<Graph>,
+    mut apply_force: ResMut<ApplyForce>,
+    mut lmb_mode: ResMut<MouseMode>,
     // mut _state: ResMut<State<GraphState>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    if keys.just_pressed(KEYCODE_BUILD) {
+        *lmb_mode = MouseMode::Build;
+    } else if keys.just_pressed(KEYCODE_MOVE) {
+        *lmb_mode = MouseMode::Move;
+    } else if keys.just_pressed(KEYCODE_TOGGLE_FORCE) {
+        apply_force.0 = !apply_force.0;
+    }
+}
+
+pub fn update_mouse_coords(
+    windows: Res<Windows>,
     mut cursor_moved: EventReader<CursorMoved>,
-    mut cursor_position: Local<Vec2>,
-    mut last_touched_vertex_id: Local<usize>,
-    mut lmb_mode: Local<MouseMode>,
-    // mut _apply_force: Local<usize>,
-    mut hint_text_query: Query<Entity, With<HintText>>,
-    mut vertex_query: Query<&mut Transform, (With<Vertex>, With<Children>)>,
-    mut segment_query: Query<&mut Transform, (With<Segment>, Without<Vertex>)>,
+    mut cursor_position: ResMut<CursorPosition>,
+    mut cursor_position_to_center: ResMut<CursorPositionToCenter>,
 ) {
     let window = windows.get_primary().unwrap();
     let (w, h) = ((*window).width(), (*window).height());
     
     if let Some(moved_cursor) = cursor_moved.iter().last() {
-        *cursor_position = moved_cursor.position; // from left bottom corner
+        cursor_position.0 = moved_cursor.position; // from left bottom corner
+        cursor_position_to_center.0 = cursor_position.0 - Vec2::new(w/2., h/2.);
     }
-    let (cx, cy) = ((*cursor_position).x - w/2., (*cursor_position).y - h/2.);
+}
 
-    let left_click = mouse_button_input.just_pressed(MouseButton::Left);
+pub fn add_verticies(
+    r: Res<Resources>,
+    mouse: Res<Input<MouseButton>>,
+    cursor_position_to_center: Res<CursorPositionToCenter>,
+    mut c: Commands,
+    mut g: ResMut<Graph>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut hint_text_query: Query<Entity, With<HintText>>,
+) {
+    let right_release = mouse.just_released(MouseButton::Right);
 
-    let left_release = mouse_button_input.just_released(MouseButton::Left);
-    let right_release = mouse_button_input.just_released(MouseButton::Right);
-
-    if keys.just_pressed(KEYCODE_BUILD) {
-        *lmb_mode = MouseMode::Build;
-    } else if keys.just_pressed(KEYCODE_MOVE) {
-        *lmb_mode = MouseMode::Move;
-    }
-
-    // create new vertex
     if right_release {
-        for e in &mut hint_text_query { c.entity(e).despawn(); *last_touched_vertex_id = usize::MAX; } // despawn hint text
+        for e in &mut hint_text_query { c.entity(e).despawn(); } // despawn hint text
 
         let new_id = (*g).len();
-        let vertex = Vertex { id: new_id, coords: Vec2::new(cx, cy), ..Default::default() };
+        let vertex = Vertex { id: new_id, coords: cursor_position_to_center.0, ..Default::default() };
 
         (*g).add_vertex(vertex.clone());
 
         c.spawn(MaterialMesh2dBundle { // bg circle
             mesh: meshes.add(shape::Circle::new(VERTEX_RADIUS).into()).into(),
             material: materials.add(ColorMaterial::from(COLOR_BG_VERTEX)),
-            transform: Transform::from_translation(Vec3::new(cx, cy, 0.)),
+            transform: Transform::from_translation(Vec3::new(cursor_position_to_center.0.x, cursor_position_to_center.0.y, 0.)),
             ..default()
         })
         .with_children(|parent| {
@@ -199,6 +218,23 @@ pub fn app(
         })
         .insert(vertex);
     }
+}
+
+pub fn update_verticies(
+    mouse: Res<Input<MouseButton>>,
+    lmb_mode: Res<MouseMode>,
+    cursor_position_to_center: Res<CursorPositionToCenter>,
+    apply_force: Res<ApplyForce>,
+    mut c: Commands,
+    mut g: ResMut<Graph>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut last_touched_vertex_id: ResMut<LastTouchedId>,
+    mut vertex_query: Query<&mut Transform, (With<Vertex>, With<Children>)>,
+    mut segment_query: Query<&mut Transform, (With<Segment>, Without<Vertex>)>,
+) {
+    let left_click = mouse.just_pressed(MouseButton::Left);
+    let left_release = mouse.just_released(MouseButton::Left);
 
     for (i, t) in zip(0..(*g).len(), &mut vertex_query) {
         (*g).verticies[i].coords = Vec2::new(t.translation.x, t.translation.y);
@@ -210,24 +246,25 @@ pub fn app(
 
         // drag a vertex
         if *lmb_mode == MouseMode::Move {
-            if left_click && is_in_circle(Vec2::new(cx, cy), v1.coords, VERTEX_RADIUS) {
-                *last_touched_vertex_id = i;
+            if left_click && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
+                last_touched_vertex_id.0 = i;
             } else if left_release {
-                *last_touched_vertex_id = usize::MAX;
-            } else if !left_click && *last_touched_vertex_id == i {
-                (*t).translation = Vec3::new(cx, cy, 0.);
+                last_touched_vertex_id.0 = usize::MAX;
+            } else if !left_click && last_touched_vertex_id.0 == i {
+                (*t).translation = Vec3::new(cursor_position_to_center.0.x, cursor_position_to_center.0.y, 0.);
                 continue;
             }
         } else if *lmb_mode == MouseMode::Build {
-            if left_click && is_in_circle(Vec2::new(cx, cy), v1.coords, VERTEX_RADIUS) {
-                *last_touched_vertex_id = i;
-            } else if left_release && is_in_circle(Vec2::new(cx, cy), v1.coords, VERTEX_RADIUS) {
-                (*g).add_arc(*last_touched_vertex_id, v1.id);
+            if left_click && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
+                last_touched_vertex_id.0 = i;
+            } else if left_release && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
+                (*g).add_arc(last_touched_vertex_id.0, v1.id);
                 Segment::spawn_from_two_points(ARC_WIDTH, COLOR_BG_VERTEX, &mut c, &mut meshes, &mut materials);
-                *last_touched_vertex_id = usize::MAX;
+                last_touched_vertex_id.0 = usize::MAX;
             }
         }
 
+        if !apply_force.0 { continue; }
         for j in 0..(*g).len() {
             if i == j { continue; }
             let v2 = (*g).verticies[j].clone();
