@@ -9,12 +9,15 @@ use std::{
 };
 
 const MINIMAL_F:        f32 = 1.;
+
 const MINIMAL_DISTANCE: f32 = 50.;
 const MAXIMUM_DISTANCE: f32 = 400.;
+const RELATION_POWER:   f32 = 500000.;
+
 const AIMING_DISTANCE:  f32 = 375.;
 const ACCEPTABLE_FLUCT: f32 = 100.;
 const FLUCT_POWER:      f32 = 0.1;
-const RELATION_POWER:   f32 = 500000.;
+
 const SPRING_COEF:      f32 = 0.01;
 const DEFAULT_MOVEMENT: f32 = 1.;
 
