@@ -44,7 +44,7 @@ pub struct CursorPosition(pub Vec2);
 pub struct CursorPositionToCenter(pub Vec2);
 
 
-#[derive(Clone, PartialEq, Debug, Resource)]
+#[derive(Debug, Resource)]
 pub struct ApplyForce(pub bool);
 
 
@@ -178,10 +178,10 @@ pub fn add_verticies(
     if right_release {
         for e in &mut hint_text_query { c.entity(e).despawn(); } // despawn hint text
 
-        let new_id = (*g).len();
+        let new_id = g.len();
         let vertex = Vertex { id: new_id, coords: cursor_position_to_center.0, ..Default::default() };
 
-        (*g).add_vertex(vertex.clone());
+        g.add_vertex(vertex.clone());
 
         c.spawn(MaterialMesh2dBundle { // bg circle
             mesh: meshes.add(shape::Circle::new(VERTEX_RADIUS).into()).into(),
@@ -236,13 +236,13 @@ pub fn update_verticies(
     let left_click = mouse.just_pressed(MouseButton::Left);
     let left_release = mouse.just_released(MouseButton::Left);
 
-    for (i, t) in zip(0..(*g).len(), &mut vertex_query) {
-        (*g).verticies[i].coords = Vec2::new(t.translation.x, t.translation.y);
+    for (i, t) in zip(0..g.len(), &mut vertex_query) {
+        g.verticies[i].coords = Vec2::new(t.translation.x, t.translation.y);
     }
 
     // iterate over all vertecies to add force to each vertex
-    for (i, mut t) in zip(0..(*g).len(), &mut vertex_query) {
-        let mut v1 = (*g).verticies[i].clone();
+    for (i, mut t) in zip(0..g.len(), &mut vertex_query) {
+        let mut v1 = g.verticies[i].clone();
 
         // drag a vertex
         if *lmb_mode == MouseMode::Move {
@@ -251,43 +251,43 @@ pub fn update_verticies(
             } else if left_release {
                 last_touched_vertex_id.0 = usize::MAX;
             } else if !left_click && last_touched_vertex_id.0 == i {
-                (*t).translation = Vec3::new(cursor_position_to_center.0.x, cursor_position_to_center.0.y, 0.);
+                t.translation = Vec3::new(cursor_position_to_center.0.x, cursor_position_to_center.0.y, 0.);
                 continue;
             }
         } else if *lmb_mode == MouseMode::Build {
             if left_click && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
                 last_touched_vertex_id.0 = i;
             } else if left_release && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
-                (*g).add_arc(last_touched_vertex_id.0, v1.id);
+                g.add_arc(last_touched_vertex_id.0, v1.id);
                 Segment::spawn_from_two_points(ARC_WIDTH, COLOR_BG_VERTEX, &mut c, &mut meshes, &mut materials);
                 last_touched_vertex_id.0 = usize::MAX;
             }
         }
 
         if !apply_force.0 { continue; }
-        for j in 0..(*g).len() {
+        for j in 0..g.len() {
             if i == j { continue; }
-            let v2 = (*g).verticies[j].clone();
+            let v2 = g.verticies[j].clone();
             let f = v1.relate(&v2);
             v1.add_acc(f);
         }
         v1.update();
 
         let (x, y) = (v1.coords.x, v1.coords.y); // bro i can't even unwrap Vec2 to tuple, literally 1984
-        (*t).translation = Vec3::new(x, y, 0.);
+        t.translation = Vec3::new(x, y, 0.);
     }
 
-    for (arcs, mut t) in zip((*g).all_arcs(), &mut segment_query) {
+    for (arcs, mut t) in zip(g.all_arcs(), &mut segment_query) {
         let (i, j) = arcs;
 
-        let p1 = (*g).verticies[i].coords;
-        let p2 = (*g).verticies[j].coords;
+        let p1 = g.verticies[i].coords;
+        let p2 = g.verticies[j].coords;
         let sum = p1 + p2;
         let sub = p1 - p2;
 
-        (*t).rotation = Quat::from_rotation_z((sub.y / sub.x).atan());
-        (*t).scale = Vec3 { x: sub.length(), y: 1., z: 1.};
-        (*t).translation = Vec3 { x: sum.x / 2., y: sum.y / 2., z: 0.};
+        t.rotation = Quat::from_rotation_z((sub.y / sub.x).atan());
+        t.scale = Vec3 { x: sub.length(), y: 1., z: 1.};
+        t.translation = Vec3 { x: sum.x / 2., y: sum.y / 2., z: 0.};
         if i == j {
         } else {
         }

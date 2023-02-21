@@ -98,10 +98,9 @@ impl Graph {
     }
 
     pub fn add_arc(&mut self, k: usize, v: usize) {
-        if !self.arcs.contains_key(&k) {
-            self.arcs.insert(k, vec![v]);
-        } else {
-            self.arcs.get_mut(&k).unwrap().push(v);
+        match self.arcs.get_mut(&k) {
+            Some(a) => { a.push(v); },
+            _ => { self.arcs.insert(k, vec![v]); }
         }
     }
 
