@@ -8,6 +8,7 @@ use std::{
     collections::HashMap,
 };
 
+
 const MINIMAL_F:        f32 = 1.;
 
 const MINIMAL_DISTANCE: f32 = 50.;
@@ -20,6 +21,7 @@ const FLUCT_POWER:      f32 = 0.1;
 
 const SPRING_COEF:      f32 = 0.01;
 const DEFAULT_MOVEMENT: f32 = 1.;
+
 
 #[derive(Clone, Default, Debug, Component)]
 pub struct Vertex {

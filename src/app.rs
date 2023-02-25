@@ -54,7 +54,7 @@ pub fn init(
     commands.spawn(Text2dBundle {
         text: Text {
             sections: vec![TextSection {
-                value: "To create asset_server new vertex press RMB".to_owned(),
+                value: "To create new vertex press RMB".to_owned(),
                 style: TextStyle {
                     font: resources.font.clone(),
                     font_size: FONT_INIT_TEXT_SIZE,
@@ -132,7 +132,7 @@ pub fn add_verticies(
                 ..default()
             });
         })
-        .with_children(|parent| {
+        .with_children(|parent| { // number
             parent.spawn(Text2dBundle {
                 text: Text {
                     sections: vec![
@@ -179,7 +179,7 @@ pub fn update_verticies(
     for (i, mut t) in zip(0..graph.len(), &mut vertex_query) {
         let mut v1 = graph.verticies[i].clone();
 
-        // drag asset_server vertex
+        // drag a vertex
         if *lmb_mode == MouseMode::Move {
             if left_click && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
                 last_touched_vertex_id.0 = i;
@@ -223,7 +223,7 @@ pub fn update_verticies(
         t.rotation = Quat::from_rotation_z((sub.y / sub.x).atan());
         t.scale = Vec3 { x: sub.length(), y: 1., z: 1.};
         t.translation = Vec3 { x: sum.x / 2., y: sum.y / 2., z: 0.};
-        // if i == j {
+        // if i == j { // maybe needs some processing
         // } else {
         // }
     }
