@@ -40,23 +40,23 @@ const KEYCODE_TOGGLE_FORCE: KeyCode = KeyCode::Space;
 
 
 pub fn startup(
-    a: Res<AssetServer>,
-    mut c: Commands,
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
 ) {
-    c.spawn(Camera2dBundle::default());
-    c.insert_resource(Resources { font: a.load(Path::new("fonts").join(FONT_NAME)) });
+    commands.spawn(Camera2dBundle::default());
+    commands.insert_resource(Resources { font: asset_server.load(Path::new("fonts").join(FONT_NAME)) });
 }
 
 pub fn init(
-    r: Res<Resources>,
-    mut c: Commands,
+    resources: Res<Resources>,
+    mut commands: Commands,
 ) {
-    c.spawn(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text {
             sections: vec![TextSection {
-                value: "To create a new vertex press RMB".to_owned(),
+                value: "To create asset_server new vertex press RMB".to_owned(),
                 style: TextStyle {
-                    font: r.font.clone(),
+                    font: resources.font.clone(),
                     font_size: FONT_INIT_TEXT_SIZE,
                     color: COLOR_INIT_TEXT,
                 },
@@ -99,11 +99,11 @@ pub fn update_mouse_coords(
 }
 
 pub fn add_verticies(
-    r: Res<Resources>,
+    resources: Res<Resources>,
     mouse: Res<Input<MouseButton>>,
     cursor_position_to_center: Res<CursorPositionToCenter>,
-    mut c: Commands,
-    mut g: ResMut<Graph>,
+    mut commands: Commands,
+    mut graph: ResMut<Graph>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut hint_text_query: Query<Entity, With<HintText>>,
@@ -111,14 +111,14 @@ pub fn add_verticies(
     let right_release = mouse.just_released(MouseButton::Right);
 
     if right_release {
-        for e in &mut hint_text_query { c.entity(e).despawn(); } // despawn hint text
+        for e in &mut hint_text_query { commands.entity(e).despawn(); } // despawn hint text
 
-        let new_id = g.len();
+        let new_id = graph.len();
         let vertex = Vertex { id: new_id, coords: cursor_position_to_center.0, ..Default::default() };
 
-        g.add_vertex(vertex.clone());
+        graph.add_vertex(vertex.clone());
 
-        c.spawn(MaterialMesh2dBundle { // bg circle
+        commands.spawn(MaterialMesh2dBundle { // bg circle
             mesh: meshes.add(shape::Circle::new(VERTEX_RADIUS).into()).into(),
             material: materials.add(ColorMaterial::from(COLOR_BG_VERTEX)),
             transform: Transform::from_translation(Vec3::new(cursor_position_to_center.0.x, cursor_position_to_center.0.y, 0.)),
@@ -139,7 +139,7 @@ pub fn add_verticies(
                         TextSection {
                             value: format!("{}", new_id),
                             style: TextStyle {
-                                font: r.font.clone(),
+                                font: resources.font.clone(),
                                 font_size: FONT_SIZE,
                                 color: COLOR_TEXT,
                             }    
@@ -160,8 +160,8 @@ pub fn update_verticies(
     lmb_mode: Res<MouseMode>,
     cursor_position_to_center: Res<CursorPositionToCenter>,
     apply_force: Res<ApplyForce>,
-    mut c: Commands,
-    mut g: ResMut<Graph>,
+    mut commands: Commands,
+    mut graph: ResMut<Graph>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut last_touched_vertex_id: ResMut<LastTouchedId>,
@@ -171,15 +171,15 @@ pub fn update_verticies(
     let left_click = mouse.just_pressed(MouseButton::Left);
     let left_release = mouse.just_released(MouseButton::Left);
 
-    for (i, t) in zip(0..g.len(), &mut vertex_query) {
-        g.verticies[i].coords = Vec2::new(t.translation.x, t.translation.y);
+    for (i, t) in zip(0..graph.len(), &mut vertex_query) {
+        graph.verticies[i].coords = Vec2::new(t.translation.x, t.translation.y);
     }
 
     // iterate over all vertecies to add force to each vertex
-    for (i, mut t) in zip(0..g.len(), &mut vertex_query) {
-        let mut v1 = g.verticies[i].clone();
+    for (i, mut t) in zip(0..graph.len(), &mut vertex_query) {
+        let mut v1 = graph.verticies[i].clone();
 
-        // drag a vertex
+        // drag asset_server vertex
         if *lmb_mode == MouseMode::Move {
             if left_click && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
                 last_touched_vertex_id.0 = i;
@@ -193,18 +193,18 @@ pub fn update_verticies(
             if left_click && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
                 last_touched_vertex_id.0 = i;
             } else if left_release && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
-                g.add_arc(last_touched_vertex_id.0, v1.id);
-                Segment::spawn_from_two_points(ARC_WIDTH, COLOR_BG_VERTEX, &mut c, &mut meshes, &mut materials);
+                graph.add_arc(last_touched_vertex_id.0, v1.id);
+                Segment::spawn_from_two_points(ARC_WIDTH, COLOR_BG_VERTEX, &mut commands, &mut meshes, &mut materials);
                 last_touched_vertex_id.0 = usize::MAX;
             }
         }
 
         if !apply_force.0 { continue; }
-        for j in 0..g.len() {
+        for j in 0..graph.len() {
             if i == j { continue; }
-            let v2 = g.verticies[j].clone();
-            let f = v1.relate(&v2);
-            v1.add_acc(f);
+            let v2 = graph.verticies[j].clone();
+            let acceleration = v1.relate(&v2);
+            v1.add_acc(acceleration);
         }
         v1.update();
 
@@ -212,11 +212,11 @@ pub fn update_verticies(
         t.translation = Vec3::new(x, y, 0.);
     }
 
-    for (arcs, mut t) in zip(g.all_arcs(), &mut segment_query) {
+    for (arcs, mut t) in zip(graph.all_arcs(), &mut segment_query) {
         let (i, j) = arcs;
 
-        let p1 = g.verticies[i].coords;
-        let p2 = g.verticies[j].coords;
+        let p1 = graph.verticies[i].coords;
+        let p2 = graph.verticies[j].coords;
         let sum = p1 + p2;
         let sub = p1 - p2;
 

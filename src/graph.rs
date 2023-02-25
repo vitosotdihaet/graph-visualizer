@@ -36,24 +36,24 @@ impl Vertex {
         let c2 = other.coords;
         let nv = c1 - c2;
 
-        let mut f = Vec2::new(0., 0.);
+        let mut acceleration = Vec2::new(0., 0.);
         let mut d = nv.length();
-        if let Some(a) = nv.try_normalize() { f = a; }
+        if let Some(a) = nv.try_normalize() { acceleration = a; }
 
         if d < MAXIMUM_DISTANCE {
             d = MINIMAL_DISTANCE.max(d);
 
-            f *= RELATION_POWER/(d*d);
+            acceleration *= RELATION_POWER/(d*d);
         } else {
-            f *= SPRING_COEF * (AIMING_DISTANCE - d) + DEFAULT_MOVEMENT;
-            if (AIMING_DISTANCE - d).abs() < ACCEPTABLE_FLUCT { f *= FLUCT_POWER; }
+            acceleration *= SPRING_COEF * (AIMING_DISTANCE - d) + DEFAULT_MOVEMENT;
+            if (AIMING_DISTANCE - d).abs() < ACCEPTABLE_FLUCT { acceleration *= FLUCT_POWER; }
         }
-        if f.length() < MINIMAL_F { f *= 0.; }
-        f
+        if acceleration.length() < MINIMAL_F { acceleration *= 0.; }
+        acceleration
     }
 
-    pub fn add_acc(&mut self, f: Vec2) {
-        self.acceleration += f;
+    pub fn add_acc(&mut self, acceleration: Vec2) {
+        self.acceleration += acceleration;
     }
 
     pub fn update(&mut self) {
