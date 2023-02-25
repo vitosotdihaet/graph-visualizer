@@ -1,5 +1,11 @@
+use bevy::{
+    prelude::*,
+    window::{close_on_esc, WindowDescriptor},
+};
+
 use graph_visualizer::graph::Graph;
 use graph_visualizer::app::*;
+use graph_visualizer::bevy_resources::*;
 
 fn main() {
     let windows_info: WindowDescriptor = WindowDescriptor {

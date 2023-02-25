@@ -1,57 +1,17 @@
-pub use bevy::{
+use bevy::{
     prelude::*,
-    window::close_on_esc,
-    render::{
-        render_resource::SamplerDescriptor,
-        texture::ImageSampler
-    },
+    sprite::MaterialMesh2dBundle,
 };
-
-use bevy::sprite::{MaterialMesh2dBundle, Mesh2dHandle};
 use std::{
     iter::zip,
     path::Path,
 };
 
 use crate::graph::*;
+use crate::segment::*;
+use crate::bevy_resources::*;
+use crate::misc::*;
 
-#[derive(Clone, PartialEq, Eq, Debug, Hash)]
-pub enum GraphState {
-    Graph,
-    Algorithm,
-}
-
-#[derive(Clone, PartialEq, Eq, Debug, Resource)]
-pub enum MouseMode {
-    Move,
-    Build,
-}
-
-impl Default for MouseMode {
-    fn default() -> Self {
-        MouseMode::Move
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Debug, Resource)]
-pub struct LastTouchedId(pub usize);
-
-
-#[derive(Clone, PartialEq, Debug, Resource)]
-pub struct CursorPosition(pub Vec2);
-
-#[derive(Clone, PartialEq, Debug, Resource)]
-pub struct CursorPositionToCenter(pub Vec2);
-
-
-#[derive(Debug, Resource)]
-pub struct ApplyForce(pub bool);
-
-
-#[derive(Resource)]
-pub struct Resources {
-    font: Handle<Font>,
-}
 
 #[derive(Component)]
 pub struct HintText;
@@ -77,31 +37,6 @@ const ARC_WIDTH: f32 = 10.;
 const KEYCODE_BUILD: KeyCode = KeyCode::B;
 const KEYCODE_MOVE: KeyCode = KeyCode::M;
 const KEYCODE_TOGGLE_FORCE: KeyCode = KeyCode::Space;
-
-fn is_in_circle(p1: Vec2, p2: Vec2, r: f32) -> bool {
-    (p2.x - r < p1.x && p1.x < p2.x + r) && (p2.y - r < p1.y && p1.y < p2.y + r)
-}
-
-#[derive(Component)]
-pub struct Segment;
-
-impl Segment {
-    pub fn spawn_from_two_points(
-        width: f32,
-        color: Color,
-        commands: &mut Commands,
-        meshes: &mut ResMut<Assets<Mesh>>,
-        materials: &mut ResMut<Assets<ColorMaterial>>,
-    ) {
-        let material_mesh = MaterialMesh2dBundle {
-            material: materials.add(ColorMaterial::from(color)),
-            mesh: Mesh2dHandle(meshes.add(Mesh::from(shape::Quad { size: Vec2::new(1., width), flip: false}))),
-            ..Default::default()
-        };
-
-        commands.spawn(material_mesh).insert(Segment);
-    }
-}
 
 
 pub fn startup(
@@ -137,7 +72,7 @@ pub fn handle_input(
     keys: Res<Input<KeyCode>>,
     mut apply_force: ResMut<ApplyForce>,
     mut lmb_mode: ResMut<MouseMode>,
-    // mut _state: ResMut<State<GraphState>>,
+    mut _state: ResMut<State<GraphState>>,
 ) {
     if keys.just_pressed(KEYCODE_BUILD) {
         *lmb_mode = MouseMode::Build;
@@ -288,9 +223,9 @@ pub fn update_verticies(
         t.rotation = Quat::from_rotation_z((sub.y / sub.x).atan());
         t.scale = Vec3 { x: sub.length(), y: 1., z: 1.};
         t.translation = Vec3 { x: sum.x / 2., y: sum.y / 2., z: 0.};
-        if i == j {
-        } else {
-        }
+        // if i == j {
+        // } else {
+        // }
     }
 
 }
