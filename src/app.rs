@@ -16,6 +16,9 @@ use crate::misc::*;
 #[derive(Component)]
 pub struct HintText;
 
+#[derive(Component)]
+pub struct MouseModeText;
+
 
 const FONT_NAME: &str = "FOTNewRodin Pro B.otf";
 
@@ -34,6 +37,9 @@ const _COLOR_PRESSED_VERTEX: Color = Color::rgb(0.3, 0.3, 0.3);
 
 const ARC_WIDTH: f32 = 10.;
 
+const MOUSE_MODE_PAD_X: f32 = 20.;
+const MOUSE_MODE_PAD_Y: f32 = 20.;
+
 const KEYCODE_BUILD: KeyCode = KeyCode::B;
 const KEYCODE_MOVE: KeyCode = KeyCode::M;
 const KEYCODE_TOGGLE_FORCE: KeyCode = KeyCode::Space;
@@ -44,7 +50,9 @@ pub fn startup(
     mut commands: Commands,
 ) {
     commands.spawn(Camera2dBundle::default());
-    commands.insert_resource(Resources { font: asset_server.load(Path::new("fonts").join(FONT_NAME)) });
+    commands.insert_resource(Resources {
+        font: asset_server.load(Path::new("fonts").join(FONT_NAME))
+    });
 }
 
 pub fn init(
@@ -66,6 +74,26 @@ pub fn init(
         ..Default::default()
     })
     .insert(HintText);
+
+    commands.spawn(Text2dBundle {
+        text: Text {
+            sections: vec![TextSection {
+                value: "Move Mouse Mode".to_owned(),
+                style: TextStyle {
+                    font: resources.font.clone(),
+                    font_size: FONT_INIT_TEXT_SIZE,
+                    color: COLOR_TEXT,
+                },
+            }],  
+            alignment: TextAlignment::TOP_LEFT,
+        },
+        transform: Transform {
+            translation: Vec3 { x: 0., y: 0., z: 3. },
+            ..Default::default()
+        },
+        ..Default::default()
+    })
+    .insert(MouseModeText);
 }
 
 pub fn handle_input(
@@ -227,5 +255,25 @@ pub fn update_verticies(
         // } else {
         // }
     }
+}
 
+
+pub fn update_text(
+    windows: Res<Windows>,
+    lmb_mode: Res<MouseMode>,
+    mut text_query: Query<(&mut Text, &mut Transform), With<MouseModeText>>,
+) {
+    let window = windows.get_primary().unwrap();
+    let (w, h) = ((*window).width(), (*window).height());
+
+    for (mut text, mut t) in &mut text_query {
+        let input_text = &mut text.sections[0].value;
+        input_text.clear();
+        input_text.extend(format!("{:?} Mode", *lmb_mode).chars());
+        (*t).translation = Vec3 {
+            x: -w/2. + MOUSE_MODE_PAD_X,
+            y: h/2. - MOUSE_MODE_PAD_Y,
+            z: 3.,
+        }
+    }
 }

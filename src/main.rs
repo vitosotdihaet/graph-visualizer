@@ -37,6 +37,7 @@ fn main() {
             .with_system(update_mouse_coords)
             .with_system(add_verticies)
             .with_system(update_verticies)
+            .with_system(update_text)
         )
         .run();
 }
