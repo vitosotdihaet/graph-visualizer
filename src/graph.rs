@@ -94,26 +94,30 @@ impl Graph {
     pub fn add_vertex(&mut self, v: Vertex) {
         self.verticies.push(v.clone());
 
-        for u in &v.connected {
-            self.arcs.get_mut(&v.id).unwrap().push(u.id);
+        if let Some(vec) = self.arcs.get_mut(&v.id) {
+            for u in &v.connected {
+                vec.push(u.id);
+            }
+        } else {
+            self.arcs.insert(v.id, vec![]);
         }
     }
 
-    pub fn add_arc(&mut self, k: usize, v: usize) {
-        match self.arcs.get_mut(&k) {
-            Some(a) => { a.push(v); },
-            _ => { self.arcs.insert(k, vec![v]); }
+    pub fn add_arc(&mut self, i1: usize, i2: usize) {
+        match self.arcs.get_mut(&i1) {
+            Some(vec) => { vec.push(i2); },
+            _ => { self.arcs.insert(i1, vec![i2]); }
         }
     }
 
     pub fn all_arcs(&mut self) -> Vec<(usize, usize)> {
-        let mut v = Vec::new();
+        let mut arcs = Vec::new();
         for i in self.arcs.keys() {
             for j in self.arcs.get(i).unwrap() {
-                v.push((*i, *j));
+                arcs.push((*i, *j));
             }
         }
-        v
+        arcs
     }
 
     pub fn len(&self) -> usize {

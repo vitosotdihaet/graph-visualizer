@@ -165,18 +165,18 @@ pub fn update_verticies(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut last_touched_vertex_id: ResMut<LastTouchedId>,
-    mut vertex_query: Query<&mut Transform, (With<Vertex>, With<Children>)>,
-    mut segment_query: Query<&mut Transform, (With<Segment>, Without<Vertex>)>,
+    mut vertex_transform_query: Query<&mut Transform, (With<Vertex>, With<Children>)>,
+    mut segment_transform_query: Query<&mut Transform, (With<Segment>, Without<Vertex>)>,
 ) {
     let left_click = mouse.just_pressed(MouseButton::Left);
     let left_release = mouse.just_released(MouseButton::Left);
 
-    for (i, t) in zip(0..graph.len(), &mut vertex_query) {
+    for (i, t) in zip(0..graph.len(), &mut vertex_transform_query) {
         graph.verticies[i].coords = Vec2::new(t.translation.x, t.translation.y);
     }
 
     // iterate over all vertecies to add force to each vertex
-    for (i, mut t) in zip(0..graph.len(), &mut vertex_query) {
+    for (i, mut t) in zip(0..graph.len(), &mut vertex_transform_query) {
         let mut v1 = graph.verticies[i].clone();
 
         // drag a vertex
@@ -212,7 +212,7 @@ pub fn update_verticies(
         t.translation = Vec3::new(x, y, 0.);
     }
 
-    for (arcs, mut t) in zip(graph.all_arcs(), &mut segment_query) {
+    for (arcs, mut t) in zip(graph.all_arcs(), &mut segment_transform_query) {
         let (i, j) = arcs;
 
         let p1 = graph.verticies[i].coords;
