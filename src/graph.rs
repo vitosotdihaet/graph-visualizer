@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 
 use std::{
+    collections::HashMap,
     hash::{
         Hasher,
         Hash,
-    },
-    collections::HashMap,
+    }
 };
 
 
@@ -33,7 +33,7 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    pub fn relate(&self, other: &Self) -> Vec2 {
+    pub fn relate(&self, other: &Self, only_low: bool) -> Vec2 {
         let c1 = self.coords;
         let c2 = other.coords;
         let nv = c1 - c2;
@@ -42,7 +42,7 @@ impl Vertex {
         let mut d = nv.length();
         if let Some(a) = nv.try_normalize() { acceleration = a; }
 
-        if d < MAXIMUM_DISTANCE {
+        if d < MAXIMUM_DISTANCE || only_low {
             d = MINIMAL_DISTANCE.max(d);
 
             acceleration *= RELATION_POWER/(d*d);

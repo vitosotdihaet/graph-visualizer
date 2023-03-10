@@ -200,10 +200,10 @@ pub fn update_verticies(
         }
 
         if !apply_force.0 { continue; }
-        for j in 0..graph.len() {
-            if i == j { continue; }
-            let v2 = graph.verticies[j].clone();
-            let acceleration = v1.relate(&v2);
+        for v2 in graph.verticies.clone() {
+            if v1 == v2 { continue; }
+            let only_low = !(graph.arcs.get(&v1.id).unwrap().contains(&v2.id) || graph.arcs.get(&v2.id).unwrap().contains(&v1.id));
+            let acceleration = v1.relate(&v2, only_low);
             v1.add_acc(acceleration);
         }
         v1.update();
