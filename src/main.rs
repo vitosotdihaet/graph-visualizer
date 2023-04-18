@@ -24,6 +24,7 @@ fn main() {
         .insert_resource(CursorPosition(Vec2::new(0., 0.)))
         .insert_resource(CursorPositionToCenter(Vec2::new(0., 0.)))
         .insert_resource(LastTouchedId(usize::MAX))
+        .insert_resource(Clique(Vec::new()))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: windows_info,
             ..Default::default()
@@ -38,6 +39,7 @@ fn main() {
             .with_system(add_verticies)
             .with_system(update_verticies)
             .with_system(update_text)
+            .with_system(print_to_app)
         )
         .run();
 }

@@ -19,6 +19,9 @@ pub struct HintText;
 #[derive(Component)]
 pub struct MouseModeText;
 
+#[derive(Component)]
+pub struct AppText;
+
 
 const FONT_NAME: &str = "FOTNewRodin Pro B.otf";
 
@@ -43,6 +46,7 @@ const MOUSE_MODE_PAD_Y: f32 = 20.;
 const KEYCODE_BUILD: KeyCode = KeyCode::B;
 const KEYCODE_MOVE: KeyCode = KeyCode::M;
 const KEYCODE_TOGGLE_FORCE: KeyCode = KeyCode::Space;
+const KEYCODE_ALGORITHM: KeyCode = KeyCode::A;
 
 
 pub fn startup(
@@ -84,23 +88,36 @@ pub fn init(
                     font_size: FONT_INIT_TEXT_SIZE,
                     color: COLOR_TEXT,
                 },
-            }],  
+            }],
             alignment: TextAlignment::TOP_LEFT,
-        },
-        transform: Transform {
-            translation: Vec3 { x: 0., y: 0., z: 3. },
-            ..Default::default()
         },
         ..Default::default()
     })
     .insert(MouseModeText);
+
+    commands.spawn(Text2dBundle {
+        text: Text {
+            sections: vec![TextSection {
+                value: "".to_owned(),
+                style: TextStyle {
+                    font: resources.font.clone(),
+                    font_size: FONT_INIT_TEXT_SIZE,
+                    color: COLOR_TEXT,
+                },
+            }],
+            alignment: TextAlignment::BOTTOM_LEFT,
+        },
+        ..Default::default()
+    })
+    .insert(AppText);
 }
 
 pub fn handle_input(
     keys: Res<Input<KeyCode>>,
+    graph: Res<Graph>,
     mut apply_force: ResMut<ApplyForce>,
     mut lmb_mode: ResMut<MouseMode>,
-    mut _state: ResMut<State<GraphState>>,
+    mut cliques: ResMut<Clique>,
 ) {
     if keys.just_pressed(KEYCODE_BUILD) {
         *lmb_mode = MouseMode::Build;
@@ -108,6 +125,8 @@ pub fn handle_input(
         *lmb_mode = MouseMode::Move;
     } else if keys.just_pressed(KEYCODE_TOGGLE_FORCE) {
         apply_force.0 = !apply_force.0;
+    } else if keys.just_pressed(KEYCODE_ALGORITHM) {
+        cliques.0 = graph.max_clique();
     }
 }
 
@@ -273,6 +292,29 @@ pub fn update_text(
         (*t).translation = Vec3 {
             x: -w/2. + MOUSE_MODE_PAD_X,
             y: h/2. - MOUSE_MODE_PAD_Y,
+            z: 3.,
+        }
+    }
+}
+
+
+pub fn print_to_app(
+    windows: Res<Windows>,    
+    clique: ResMut<Clique>,
+    mut text_query: Query<(&mut Text, &mut Transform), With<AppText>>,
+) {
+    let window = windows.get_primary().unwrap();
+    let (w, h) = ((*window).width(), (*window).height());
+
+    for (mut text, mut t) in &mut text_query {
+        let input_text = &mut text.sections[0].value;
+        input_text.clear();
+        for v in clique.0.clone() {
+            input_text.extend(format!("{}\n", v.id).chars());
+        }
+        (*t).translation = Vec3 {
+            x: -w/2. + MOUSE_MODE_PAD_X,
+            y: -h/2. + MOUSE_MODE_PAD_Y,
             z: 3.,
         }
     }

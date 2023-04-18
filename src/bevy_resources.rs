@@ -1,5 +1,8 @@
 use bevy::prelude::*;
 
+use crate::graph::Vertex;
+
+
 #[derive(Clone, PartialEq, Eq, Debug, Hash, Resource)]
 pub enum GraphState {
     Graph,
@@ -31,6 +34,10 @@ pub struct CursorPositionToCenter(pub Vec2);
 
 #[derive(Debug, Resource)]
 pub struct ApplyForce(pub bool);
+
+
+#[derive(Debug, Resource)]
+pub struct Clique(pub Vec<Vertex>);
 
 
 #[derive(Resource)]

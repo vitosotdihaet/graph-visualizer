@@ -135,4 +135,12 @@ impl Graph {
     pub fn is_empty(&self) -> bool {
         self.verticies.len() == 0
     }
+
+    pub fn max_clique(&self) -> Vec<Vertex> {
+        let mut max_clique: Vec<Vertex> = vec![];
+        for i in 0..self.len() {
+            max_clique.push(self.verticies[i].clone());
+        }
+        max_clique
+    }
 }
