@@ -240,9 +240,11 @@ pub fn update_verticies(
             if left_click && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
                 last_touched_vertex_id.0 = i;
             } else if left_release && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
-                graph.add_arc(last_touched_vertex_id.0, v1.id);
-                Segment::spawn_from_two_points(ARC_WIDTH, COLOR_BG_VERTEX, &mut commands, &mut meshes, &mut materials);
-                last_touched_vertex_id.0 = usize::MAX;
+                if last_touched_vertex_id.0 != usize::MAX {
+                    graph.add_arc(last_touched_vertex_id.0, v1.id);
+                    Segment::spawn_from_two_points(ARC_WIDTH, COLOR_BG_VERTEX, &mut commands, &mut meshes, &mut materials);
+                    last_touched_vertex_id.0 = usize::MAX;
+                }
             }
         }
 
