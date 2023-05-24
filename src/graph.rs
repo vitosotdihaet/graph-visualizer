@@ -86,13 +86,13 @@ impl Hash for Vertex {
 
 #[derive(Resource, Default, Clone)]
 pub struct Graph {
-    pub verticies: Vec<Vertex>,
+    pub vertices: Vec<Vertex>,
     pub arcs: HashMap<usize, Vec<usize>>,
 }
 
 impl Graph {
     pub fn add_vertex(&mut self, v: Vertex) {
-        self.verticies.push(v.clone());
+        self.vertices.push(v.clone());
 
         if let Some(vec) = self.arcs.get_mut(&v.id) {
             for u in &v.connected {
@@ -112,16 +112,18 @@ impl Graph {
 
     pub fn all_arcs(&mut self) -> Vec<(usize, usize)> {
         let mut arcs = Vec::new();
+
         for i in self.arcs.keys() {
             for j in self.arcs.get(i).unwrap() {
                 arcs.push((*i, *j));
             }
         }
+
         arcs
     }
 
     pub fn len(&self) -> usize {
-        self.verticies.len()
+        self.vertices.len()
     }
 
     pub fn len_arcs(&self) -> usize {
@@ -133,14 +135,43 @@ impl Graph {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.verticies.len() == 0
+        self.vertices.len() == 0
     }
 
-    pub fn max_clique(&self) -> Vec<Vertex> {
-        let mut max_clique: Vec<Vertex> = vec![];
+    pub fn max_clique(&self) -> Vec<usize> {
+        let mut max_clique: Vec<usize> = vec![];
+
         for i in 0..self.len() {
-            max_clique.push(self.verticies[i].clone());
+            if max_clique.contains(&i) { continue; }
+
+            let mut current_clique: Vec<usize> = vec![];
+            current_clique.push(i);
+
+            for j in 0..self.len() {
+                if i == j { continue; }
+                if self.is_clique(&current_clique, j) {
+                    current_clique.push(j);
+                }
+            }
+
+            println!("current_clique: {:?}", current_clique);
+            if current_clique.len() > max_clique.len() {
+                max_clique = current_clique.clone();
+                println!("new_clique: {:?}", max_clique);
+            }
         }
+
         max_clique
     }
+
+    fn is_clique(&self, vec: &Vec<usize>, j: usize) -> bool {
+        let mut answ: bool = true;
+
+        for k in vec {
+            answ &= self.arcs[&j].contains(k) || self.arcs[k].contains(&j);
+        }
+
+        answ
+    }
+
 }

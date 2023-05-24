@@ -39,7 +39,7 @@ fn main() {
             .with_system(add_verticies)
             .with_system(update_verticies)
             .with_system(update_text)
-            .with_system(print_to_app)
+            .with_system(print_max_clique)
         )
         .run();
 }

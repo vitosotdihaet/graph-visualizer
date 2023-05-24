@@ -20,7 +20,7 @@ pub struct HintText;
 pub struct MouseModeText;
 
 #[derive(Component)]
-pub struct AppText;
+pub struct CliqueText;
 
 
 const FONT_NAME: &str = "FOTNewRodin Pro B.otf";
@@ -109,7 +109,7 @@ pub fn init(
         },
         ..Default::default()
     })
-    .insert(AppText);
+    .insert(CliqueText);
 }
 
 pub fn handle_input(
@@ -161,7 +161,11 @@ pub fn add_verticies(
         for e in &mut hint_text_query { commands.entity(e).despawn(); } // despawn hint text
 
         let new_id = graph.len();
-        let vertex = Vertex { id: new_id, coords: cursor_position_to_center.0, ..Default::default() };
+        let vertex = Vertex {
+            id: new_id,
+            coords: cursor_position_to_center.0,
+            ..Default::default()
+        };
 
         graph.add_vertex(vertex.clone());
 
@@ -219,12 +223,12 @@ pub fn update_verticies(
     let left_release = mouse.just_released(MouseButton::Left);
 
     for (i, t) in zip(0..graph.len(), &mut vertex_transform_query) {
-        graph.verticies[i].coords = Vec2::new(t.translation.x, t.translation.y);
+        graph.vertices[i].coords = Vec2::new(t.translation.x, t.translation.y);
     }
 
     // iterate over all vertecies to add force to each vertex
     for (i, mut t) in zip(0..graph.len(), &mut vertex_transform_query) {
-        let mut v1 = graph.verticies[i].clone();
+        let mut v1 = graph.vertices[i].clone();
 
         // drag a vertex
         if *lmb_mode == MouseMode::Move {
@@ -239,17 +243,17 @@ pub fn update_verticies(
         } else if *lmb_mode == MouseMode::Build {
             if left_click && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
                 last_touched_vertex_id.0 = i;
-            } else if left_release && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) {
-                if last_touched_vertex_id.0 != usize::MAX {
-                    graph.add_arc(last_touched_vertex_id.0, v1.id);
-                    Segment::spawn_from_two_points(ARC_WIDTH, COLOR_BG_VERTEX, &mut commands, &mut meshes, &mut materials);
-                    last_touched_vertex_id.0 = usize::MAX;
-                }
+            } else if left_release && is_in_circle(cursor_position_to_center.0, v1.coords, VERTEX_RADIUS) &&
+                      last_touched_vertex_id.0 != usize::MAX && last_touched_vertex_id.0 != i
+            {
+                graph.add_arc(last_touched_vertex_id.0, v1.id);
+                Segment::spawn_from_two_points(ARC_WIDTH, COLOR_BG_VERTEX, &mut commands, &mut meshes, &mut materials);
+                last_touched_vertex_id.0 = usize::MAX;
             }
         }
 
         if !apply_force.0 { continue; }
-        for v2 in graph.verticies.clone() {
+        for v2 in graph.vertices.clone() {
             if v1 == v2 { continue; }
             let only_low = !(graph.arcs.get(&v1.id).unwrap().contains(&v2.id) || graph.arcs.get(&v2.id).unwrap().contains(&v1.id));
             let acceleration = v1.relate(&v2, only_low);
@@ -264,17 +268,14 @@ pub fn update_verticies(
     for (arcs, mut t) in zip(graph.all_arcs(), &mut segment_transform_query) {
         let (i, j) = arcs;
 
-        let p1 = graph.verticies[i].coords;
-        let p2 = graph.verticies[j].coords;
+        let p1 = graph.vertices[i].coords;
+        let p2 = graph.vertices[j].coords;
         let sum = p1 + p2;
         let sub = p1 - p2;
 
-        t.rotation = Quat::from_rotation_z((sub.y / sub.x).atan());
+        t.rotation = Quat::from_rotation_z((sub.y/sub.x).atan());
         t.scale = Vec3 { x: sub.length(), y: 1., z: 1.};
-        t.translation = Vec3 { x: sum.x / 2., y: sum.y / 2., z: 0.};
-        // if i == j { // maybe needs some processing
-        // } else {
-        // }
+        t.translation = Vec3 { x: sum.x/2., y: sum.y/2., z: 0.};
     }
 }
 
@@ -291,7 +292,7 @@ pub fn update_text(
         let input_text = &mut text.sections[0].value;
         input_text.clear();
         input_text.extend(format!("{:?} Mode", *lmb_mode).chars());
-        (*t).translation = Vec3 {
+        t.translation = Vec3 {
             x: -w/2. + MOUSE_MODE_PAD_X,
             y: h/2. - MOUSE_MODE_PAD_Y,
             z: 3.,
@@ -300,10 +301,10 @@ pub fn update_text(
 }
 
 
-pub fn print_to_app(
+pub fn print_max_clique(
     windows: Res<Windows>,    
     clique: ResMut<Clique>,
-    mut text_query: Query<(&mut Text, &mut Transform), With<AppText>>,
+    mut text_query: Query<(&mut Text, &mut Transform), With<CliqueText>>,
 ) {
     let window = windows.get_primary().unwrap();
     let (w, h) = ((*window).width(), (*window).height());
@@ -311,10 +312,21 @@ pub fn print_to_app(
     for (mut text, mut t) in &mut text_query {
         let input_text = &mut text.sections[0].value;
         input_text.clear();
-        for v in clique.0.clone() {
-            input_text.extend(format!("{}\n", v.id).chars());
+
+        if clique.0.is_empty() {
+            input_text.push_str("To find max clique, press \"A\".\n");
+        } else {
+            input_text.push_str("Maximal clique:\n");
+
+            for v in &clique.0 {
+                input_text.push_str(&format!("{}, ", v));
+            }
+
+            input_text.pop();
+            input_text.pop(); // remove last comma
         }
-        (*t).translation = Vec3 {
+
+        t.translation = Vec3 {
             x: -w/2. + MOUSE_MODE_PAD_X,
             y: -h/2. + MOUSE_MODE_PAD_Y,
             z: 3.,

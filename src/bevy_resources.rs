@@ -1,7 +1,5 @@
 use bevy::prelude::*;
 
-use crate::graph::Vertex;
-
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash, Resource)]
 pub enum GraphState {
@@ -37,7 +35,7 @@ pub struct ApplyForce(pub bool);
 
 
 #[derive(Debug, Resource)]
-pub struct Clique(pub Vec<Vertex>);
+pub struct Clique(pub Vec<usize>);
 
 
 #[derive(Resource)]
